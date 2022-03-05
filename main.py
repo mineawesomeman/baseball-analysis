@@ -9,6 +9,8 @@ import Play
 print("The information used here was obtained free of charge from and is copyrighted by Retrosheet.  Interested "
       "parties may contact Retrosheet at 20 Sunset Rd., Newark, DE 19711.")
 
+# this is the branch with my code from my alienware laptop
+
 years = [2020]
 folder = "C:\\Users\\daraw\\Documents\\bevent"
 
