@@ -25,6 +25,8 @@ class Play:
     outcome_modifiers = None
     bases_after = None
     pitching_events = None
+    home_score_after = 0
+    visit_score_after = 0
 
     def __init__(self, game=None, pitcher=None, batter=None, bases_before_bat=None, home_score=0, visit_score=0,
                  inning=0, topInning=True, ballsStrike=00, pitches_string="", outcome_string="", pitching_events=None):
@@ -35,18 +37,20 @@ class Play:
         if bases_before_bat is not None:
             self.bases_before_bat = bases_before_bat
         else:
-            self.bases_before_bat = []
+            self.bases_before_bat = [None, None, None]
 
         self.pitches = []
         self.outcome_modifiers = []
-        self.bases_after = []
+        self.bases_after = [None, None, None]
         self.outcome_array = []
 
         self.game = game
         self.pitcher = pitcher
         self.batter = batter
         self.home_score = home_score
+        self.home_score_after = self.home_score
         self.visit_score = visit_score
+        self.visit_score_after = self.visit_score
         self.inning = inning
         self.topInning = topInning
         self.balls = math.floor(ballsStrike / 10)
@@ -72,52 +76,52 @@ class Play:
         if self.checkDigit(strLoc):
             self.outcome = 1
             strLoc = self.playerString(strLoc)
-        elif self.outcome_string[strLoc:strLoc+3] == 'C/E':
+        elif self.outcome_string[strLoc:strLoc + 3] == 'C/E':
             self.outcome = 2
             strLoc += self.playerString(strLoc + 3)
-        elif self.outcome_string[strLoc:strLoc+1] == 'S':
+        elif self.outcome_string[strLoc:strLoc + 1] == 'S':
             self.outcome = 3
             strLoc = self.playerString(strLoc + 1)
-        elif self.outcome_string[strLoc:strLoc+1] == 'D':
+        elif self.outcome_string[strLoc:strLoc + 1] == 'D':
             self.outcome = 4
             strLoc = self.playerString(strLoc + 1)
-        elif self.outcome_string[strLoc:strLoc+1] == 'T':
+        elif self.outcome_string[strLoc:strLoc + 1] == 'T':
             self.outcome = 5
             strLoc = self.playerString(strLoc + 1)
-        elif self.outcome_string[strLoc:strLoc+3] == 'DGR':
+        elif self.outcome_string[strLoc:strLoc + 3] == 'DGR':
             self.outcome = 6
             strLoc += 3
-        elif self.outcome_string[strLoc:strLoc+1] == 'E':
+        elif self.outcome_string[strLoc:strLoc + 1] == 'E':
             self.outcome = 7
             strLoc = self.playerString(strLoc + 1)
-        elif self.outcome_string[strLoc:strLoc+2] == 'FC':
+        elif self.outcome_string[strLoc:strLoc + 2] == 'FC':
             self.outcome = 8
             strLoc = self.playerString(strLoc + 2)
-        elif self.outcome_string[strLoc:strLoc+3] == 'FLE':
+        elif self.outcome_string[strLoc:strLoc + 3] == 'FLE':
             self.outcome = 9
             strLoc = self.playerString(strLoc + 3)
-        elif self.outcome_string[strLoc:strLoc+2] == 'HR':
+        elif self.outcome_string[strLoc:strLoc + 2] == 'HR':
             self.outcome = 10
             strLoc = self.playerString(strLoc + 2)
-        elif self.outcome_string[strLoc:strLoc+2] == 'HP':
+        elif self.outcome_string[strLoc:strLoc + 2] == 'HP':
             self.outcome = 11
             strLoc += 2
-        elif self.outcome_string[strLoc:strLoc+1] == 'H':
+        elif self.outcome_string[strLoc:strLoc + 1] == 'H':
             self.outcome = 10
             strLoc = self.playerString(strLoc + 1)
-        elif self.outcome_string[strLoc:strLoc+1] == 'K':
+        elif self.outcome_string[strLoc:strLoc + 1] == 'K':
             self.outcome = 12
             strLoc += 1
-        elif self.outcome_string[strLoc:strLoc+2] == 'NP':
+        elif self.outcome_string[strLoc:strLoc + 2] == 'NP':
             self.outcome = -1
             strLoc += 2
-        elif self.outcome_string[strLoc:strLoc+2] == 'IW':
+        elif self.outcome_string[strLoc:strLoc + 2] == 'IW':
             self.outcome = 13
             strLoc += 2
-        elif self.outcome_string[strLoc:strLoc+1] == 'I':
+        elif self.outcome_string[strLoc:strLoc + 1] == 'I':
             self.outcome = 13
             strLoc += 2
-        elif self.outcome_string[strLoc:strLoc+1] == 'W':
+        elif self.outcome_string[strLoc:strLoc + 1] == 'W':
             self.outcome = 14
             strLoc += 1
         else:
@@ -137,6 +141,29 @@ class Play:
             while strLoc < len(self.outcome_string) and self.outcome_string[strLoc] is not '/' or '.':
                 strLoc += 1
             self.outcome_modifiers.append(em.EMfromStr(self.outcome_string[beginLoc:strLoc]))
+
+        currentRunners = self.bases_before_bat.copy()
+
+        while strLoc < len(self.outcome_string) and self.outcome_string[strLoc] is '.' or ';':
+            strLoc += 1
+            startBase = self.outcome_string[strLoc]
+            action = self.outcome_string[strLoc + 1]
+            endBase = self.outcome_string[strLoc]
+
+            if startBase is 'B':
+                playerToMove = self.batter
+            else:
+                playerToMove = currentRunners[int(startBase)]
+                currentRunners[int(startBase)] = None
+
+            if action is '-' or 'E':
+                if endBase is 'H':
+                    if self.topInning:
+                        self.visit_score_after += 1
+                    else:
+                        self.home_score_after += 1
+                else:
+                    self.bases_after[int(endBase)] = playerToMove
 
     def checkDigit(self, loc):
         if self.outcome_string[loc] is '0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or '0':
